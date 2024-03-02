@@ -1,7 +1,7 @@
 "use client";
 
 import { ArticleCardsGrid } from "@/components/articleView/ArticleCardsGrid";
-import { ActionIcon, Button, Group, Loader, Stack, TextInput, Title, rem, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Group, Loader, MultiSelect, Stack, TextInput, Title, rem, useMantineTheme } from "@mantine/core";
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import levenshtein from "fast-levenshtein";
 import { signIn, useSession } from "next-auth/react";
@@ -12,9 +12,9 @@ import { getAllPublicFlashCardSets } from "./utils/firebase";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-
   const { data: session } = useSession();
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSet[]>();
+  const [selectedFilters, setSelectedFilters] = useState<FlashcardSet[]>([]);
   const theme = useMantineTheme();
 
   useEffect(() => {
@@ -30,16 +30,17 @@ export default function Home() {
 
   const filteredFlashcardSets = useMemo(() => {
     if (!flashcardSets) return [];
-
     return flashcardSets
-      .filter((flashcardSet) => flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase()))
-      .sort((a, b) => {
-        // Use Levenshtein distance for sorting
+      .filter((flashcardSet: FlashcardSet) => flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((flashcardSet: FlashcardSet) => selectedFilters.length === 0 || selectedFilters.some((filter) => filter.id === flashcardSet.id))
+      .sort((a: FlashcardSet, b: FlashcardSet) => {
         const distanceA = levenshtein.get(a.title.toLowerCase(), searchQuery.toLowerCase());
         const distanceB = levenshtein.get(b.title.toLowerCase(), searchQuery.toLowerCase());
         return distanceA - distanceB; // Sort in ascending order of distance
       });
-  }, [flashcardSets, searchQuery]);
+  },
+    [flashcardSets, searchQuery, selectedFilters]);
+
 
   return (
     <Stack align="center">
@@ -69,6 +70,19 @@ export default function Home() {
                 Lag nytt sett
               </Button>
             </Group>
+            <MultiSelect
+              label="Dine filterte flashies"
+              placeholder="Sorter etter"
+              data={flashcardSets.map(flashcardSet => ({
+                value: flashcardSet.id, // Assuming each flashcardSet has a unique 'id'
+                label: flashcardSet.title // And a 'title' that you want to display to users
+              }))}
+              value={selectedFilters.map(flashcardSet => flashcardSet.id)}
+              onChange={(values) => {
+                setSelectedFilters(flashcardSets.filter(flashcardSet => values.includes(flashcardSet.id)));
+              }}
+            />
+
             {<ArticleCardsGrid flashcards={filteredFlashcardSets ?? []} />}
           </>
         )

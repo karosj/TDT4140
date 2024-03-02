@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from "react";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [selectedFilters, setSelectedFilters] = useState<FlashcardSet[]>([]);
   const { data: session } = useSession();
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSet[]>();
   const theme = useMantineTheme();
@@ -30,16 +30,16 @@ export default function Home() {
 
   const filteredFlashcardSets = useMemo(() => {
     if (!flashcardSets) return [];
-
     return flashcardSets
-      .filter((flashcardSet) => flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase()))
-      .sort((a, b) => {
-        // Use Levenshtein distance for sorting
+      .filter((flashcardSet: FlashcardSet) => flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase()))
+      .filter((flashcardSet: FlashcardSet) => selectedFilters.length === 0 || selectedFilters.some((filter) => filter.id === flashcardSet.id))
+      .sort((a: FlashcardSet, b: FlashcardSet) => {
         const distanceA = levenshtein.get(a.title.toLowerCase(), searchQuery.toLowerCase());
         const distanceB = levenshtein.get(b.title.toLowerCase(), searchQuery.toLowerCase());
         return distanceA - distanceB; // Sort in ascending order of distance
       });
-  }, [flashcardSets, searchQuery]);
+  },
+    [flashcardSets, searchQuery, selectedFilters]);
 
   return (
     <Stack align="center">
