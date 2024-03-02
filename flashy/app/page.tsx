@@ -36,10 +36,8 @@ export default function Home() {
     );
 
     if (sortOption === 'mostLiked') {
-      // Assuming 'numOfLikes' is a property that exists in your data
       sortedFlashcards.sort((a, b) => b.numOfLikes - a.numOfLikes);
     } else {
-      // Fallback or default sorting, e.g., by levenshtein distance to searchQuery
       sortedFlashcards.sort((a, b) => {
         const distanceA = levenshtein.get(a.title.toLowerCase(), searchQuery.toLowerCase());
         const distanceB = levenshtein.get(b.title.toLowerCase(), searchQuery.toLowerCase());
