@@ -1,7 +1,7 @@
 "use client";
 
 import { ArticleCardsGrid } from "@/components/articleView/ArticleCardsGrid";
-import { ActionIcon, Button, Group, Loader, Stack, TextInput, Title, rem, useMantineTheme } from "@mantine/core";
+import { ActionIcon, Button, Group, Loader, Select, Stack, TextInput, Title, rem, useMantineTheme } from "@mantine/core";
 import { IconArrowRight, IconSearch } from "@tabler/icons-react";
 import levenshtein from "fast-levenshtein";
 import { signIn, useSession } from "next-auth/react";
@@ -12,7 +12,7 @@ import { getAllPublicFlashCardSets } from "./utils/firebase";
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [sortOption, setSortOption] = useState('');
   const { data: session } = useSession();
   const [flashcardSets, setFlashcardSets] = useState<FlashcardSet[]>();
   const theme = useMantineTheme();
@@ -28,18 +28,26 @@ export default function Home() {
     fetchFlashcardSet();
   }, [session]);
 
-  const filteredFlashcardSets = useMemo(() => {
+  const filteredAndSortedFlashcardSets = useMemo(() => {
     if (!flashcardSets) return [];
 
-    return flashcardSets
-      .filter((flashcardSet) => flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase()))
-      .sort((a, b) => {
-        // Use Levenshtein distance for sorting
+    let sortedFlashcards = flashcardSets.filter((flashcardSet) =>
+      flashcardSet.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (sortOption === 'mostLiked') {
+      // Assuming 'numOfLikes' is a property that exists in your data
+      sortedFlashcards.sort((a, b) => b.numOfLikes - a.numOfLikes);
+    } else {
+      // Fallback or default sorting, e.g., by levenshtein distance to searchQuery
+      sortedFlashcards.sort((a, b) => {
         const distanceA = levenshtein.get(a.title.toLowerCase(), searchQuery.toLowerCase());
         const distanceB = levenshtein.get(b.title.toLowerCase(), searchQuery.toLowerCase());
-        return distanceA - distanceB; // Sort in ascending order of distance
+        return distanceA - distanceB;
       });
-  }, [flashcardSets, searchQuery]);
+    }
+    return sortedFlashcards;
+  }, [flashcardSets, searchQuery, sortOption]);
 
   return (
     <Stack align="center">
@@ -69,7 +77,16 @@ export default function Home() {
                 Lag nytt sett
               </Button>
             </Group>
-            {<ArticleCardsGrid user={session.user} flashcards={filteredFlashcardSets ?? []} />}
+            <Select
+              label="Dine sorterte flashies"
+              placeholder="Sorter etter..."
+              value={sortOption}
+              data={[
+                { value: 'mostLiked', label: 'Flest likte' },
+                { value: 'mostFavorited', label: 'Flest favoritter' },
+              ]}
+            />
+            {<ArticleCardsGrid user={session.user} flashcards={filteredAndSortedFlashcardSets ?? []} />}
           </>
         )
       ) : (
