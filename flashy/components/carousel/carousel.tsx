@@ -23,7 +23,6 @@ export default function CarouselCard({ views }: CarouselCardProps) {
   const toggleDifficult = (markedView: FlashcardView) => {
     const markedViewCopy: FlashcardView = { ...markedView, id: markedView.id + "copy", isCopy: true };
     let newDifficultViews = [...difficultViews];
-
     if (markedViewCopy) {
       if (newDifficultViews.some((card) => card.id === markedView.id + "copy")) {
         newDifficultViews = newDifficultViews.filter((view) => view.id !== markedViewCopy.id);
@@ -33,8 +32,12 @@ export default function CarouselCard({ views }: CarouselCardProps) {
         setDifficultViews(newDifficultViews);
       }
     }
-
     setCombinedViews([...currentViews, ...newDifficultViews]);
+    setTimeout(() => {
+      if (embla) {
+        handleScroll();
+      }
+    }, 0);
   };
 
   const handleScroll = useCallback(() => {
@@ -45,11 +48,10 @@ export default function CarouselCard({ views }: CarouselCardProps) {
 
   useEffect(() => {
     if (embla) {
-      embla.on('scroll', handleScroll);
+      embla.on("scroll", handleScroll);
       handleScroll();
     }
-  }, [embla]);
-
+  }, [embla, handleScroll]);
 
   // Shuffle function
   const shuffleViews = () => {
@@ -82,7 +84,7 @@ export default function CarouselCard({ views }: CarouselCardProps) {
   ));
 
   return (
-    <Stack align="center">
+    <Stack align="center" w="100%">
       <Group>
         <Button
           onClick={shuffleViews}
@@ -93,22 +95,11 @@ export default function CarouselCard({ views }: CarouselCardProps) {
           Shuffle{isShuffled ? "d" : ""}
         </Button>
       </Group>
-      <Container style={{ width: "50vw" }}>
-        <Carousel
-          height={400}
-          slideGap="xl"
-          align="start"
-          getEmblaApi={setEmbla}
-        >
+      <Container w="100%">
+        <Carousel height={400} slideGap="xl" align="start" getEmblaApi={setEmbla}>
           {slides}
         </Carousel>
-        <Progress
-          value={scrollProgress}
-          size="sm"
-          mt="xl"
-          mx="auto"
-          style={{ maxWidth: 320 }}
-        />
+        <Progress value={scrollProgress} size="sm" mt="xl" mx="auto" style={{ maxWidth: 320 }} />
       </Container>
     </Stack>
   );

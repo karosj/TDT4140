@@ -16,7 +16,7 @@ import {
 } from "@firebase/firestore";
 import { ComboboxItem } from "@mantine/core";
 import { Session } from "next-auth";
-import { CreateFlashCardType, EditFlashCardType, FlashcardComment, FlashcardSet, FlashcardView, Visibility } from "../types/flashcard";
+import { CreateFlashCardType, CreateNewCommentType, EditFlashCardType, FlashcardComment, FlashcardSet, FlashcardView, Visibility } from "../types/flashcard";
 import { User } from "../types/user";
 import { convertDocumentRefToType, converter } from "./converter";
 
@@ -80,13 +80,16 @@ export async function getAllPublicFlashCardSets(currentUser: Session["user"]): P
   const allFlashcardSets = Promise.all(
     flashcardDocs.docs.map(async (doc) => {
       try {
+        const { numOfFavorites, numOfLikes, numOfComments } = await getNumOfFavouritesLikesComments(doc.ref);
         const flashcardSet: FlashcardSet = {
           id: doc.id,
           userHasFavorited: await getHasFavoritedFlashcard(doc.ref, currentUser.id),
           creator: await convertDocumentRefToType<User>(doc.data().creator),
           title: doc.data().title,
           numViews: doc.data().numViews,
-          numOfLikes: await getNumberOfLikes(doc.ref),
+          numOfLikes: numOfLikes,
+          numOfFavorites: numOfFavorites,
+          numOfComments: numOfComments,
           visibility: doc.data().isPublic ? Visibility.Public : Visibility.Private,
           createdAt: doc.data().createdAt.toDate(),
           coverImage: doc.data().image,
@@ -100,6 +103,14 @@ export async function getAllPublicFlashCardSets(currentUser: Session["user"]): P
   );
 
   return (await allFlashcardSets).filter((flashcard) => flashcard != null) as FlashcardSet[];
+}
+
+export function setIncrementFlashcardViews(flashcard: FlashcardSet) {
+  const flashcardCollection = collection(firestore, "flashies");
+  const flashcardDocument = doc(flashcardCollection, flashcard.id);
+  updateDoc(flashcardDocument, {
+    numViews: flashcard.numViews + 1,
+  });
 }
 
 async function userHasLikedFlashcard(
@@ -117,6 +128,23 @@ async function getNumberOfLikes(flashcardDocument: DocumentReference): Promise<n
   const likesCollection = collection(flashcardDocument, "likes");
   const numOfLikes = await getCountFromServer(likesCollection);
   return numOfLikes.data().count;
+}
+
+type NumOfFavoritesLikesComments = {
+  numOfFavorites: number;
+  numOfLikes: number;
+  numOfComments: number;
+};
+
+export async function getNumOfFavouritesLikesComments(flashcardDocument: DocumentReference): Promise<NumOfFavoritesLikesComments> {
+  const favoritesCollection = collection(flashcardDocument, "favorites");
+  const likesCollection = collection(flashcardDocument, "likes");
+  const commentCollection = collection(flashcardDocument, "comments");
+  const numOfFavorites = await getCountFromServer(favoritesCollection);
+  const numOfLikes = await getCountFromServer(likesCollection);
+  const numOfComments = await getCountFromServer(commentCollection);
+
+  return { numOfFavorites: numOfFavorites.data().count, numOfLikes: numOfLikes.data().count, numOfComments: numOfComments.data().count };
 }
 
 export async function setFavoriteFlashcard(flashcardId: FlashcardSet["id"], currentUserId: User["id"]) {
@@ -148,9 +176,9 @@ export async function removeFavoriteFlashcard(flashcardId: FlashcardSet["id"], c
   const queryDocs = await getDocs(queryFavorites);
 
   if (!queryDocs.empty) {
-      queryDocs.forEach(async (doc) => {
-          await deleteDoc(doc.ref);
-      });
+    queryDocs.forEach(async (doc) => {
+      await deleteDoc(doc.ref);
+    });
   }
 }
 
@@ -163,7 +191,6 @@ async function getHasFavoritedFlashcard(
   const favoritesCollection = collection(flashcardDocument, "favorites");
   const queryFavorites = query(favoritesCollection, where("favoritedBy", "==", currentUserRef), limit(1));
   const queryDocs = await getDocs(queryFavorites);
-  console.log(queryDocs)
   return !queryDocs.empty;
 }
 
@@ -173,14 +200,21 @@ async function getComments(flashcardDocument: DocumentReference): Promise<Flashc
 
   const comments = await Promise.all(
     commentsDocs.docs.map(async (doc) => {
-      return {
-        commentedBy: await convertDocumentRefToType<User>(doc.data().commentedBy),
-        content: doc.data().content,
-      };
+      try {
+        const comment = {
+          id: doc.id,
+          commentedBy: await convertDocumentRefToType<User>(doc.data().commentedBy),
+          content: doc.data().content,
+          createdAt: doc.data().createdAt.toDate(),
+        };
+        return comment;
+      } catch (e) {
+        console.log(`[DocId: ${doc.id}]`, e);
+      }
     })
   );
 
-  return comments;
+  return comments.filter((comment) => comment != null) as FlashcardComment[];
 }
 
 /*
@@ -202,7 +236,7 @@ export async function getFlashcardSet(flashcardId: string, currentUserId: User["
 
   const views = await getViews(flashcardDocument);
   const userHasLiked = await userHasLikedFlashcard(flashcardDocument, currentUserId);
-  const numOfLikes = await getNumberOfLikes(flashcardDocument);
+  const { numOfFavorites, numOfLikes, numOfComments } = await getNumOfFavouritesLikesComments(flashcardDocument);
   const userHasFavorited = await getHasFavoritedFlashcard(flashcardDocument, currentUserId);
   const comments = await getComments(flashcardDocument);
   const visibility = flashcardData.isPublic ? Visibility.Public : Visibility.Private;
@@ -214,6 +248,8 @@ export async function getFlashcardSet(flashcardId: string, currentUserId: User["
       title: flashcardData.title,
       numViews: flashcardData.numViews,
       numOfLikes: numOfLikes,
+      numOfFavorites: numOfFavorites,
+      numOfComments: numOfComments,
       userHasLiked: userHasLiked,
       userHasFavorited: userHasFavorited,
       comments: comments,
@@ -229,7 +265,6 @@ export async function getFlashcardSet(flashcardId: string, currentUserId: User["
   }
 
   return null;
-
 }
 
 export const toggleLike = async (currentUser: User, flashcard: FlashcardSet) => {
@@ -450,3 +485,16 @@ export async function deleteFlashcard(actionUser: User, flashcard: FlashcardSet)
   await Promise.all(favoritesDocs.docs.map((doc) => deleteDoc(doc.ref)));
 }
 
+
+export const commentOnSet = async (flashcard: FlashcardSet, comment: CreateNewCommentType) => {
+  const flashcardDoc = doc(firestore, "flashies", flashcard.id);
+  const commentsCollection = collection(flashcardDoc, "comments");
+
+  const data = {
+    commentedBy: doc(firestore, "users", comment.commentedBy.id),
+    content: comment.content,
+    createdAt: new Date(),
+  };
+
+  await addDoc(commentsCollection, data);
+}

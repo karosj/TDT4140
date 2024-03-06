@@ -12,6 +12,8 @@ export type FlashcardSet = {
     title: string;
     numViews: number;
     numOfLikes: number;
+    numOfFavorites: number;
+    numOfComments?: number;
     userHasLiked?: boolean;
     userHasFavorited?: boolean;
     comments?: FlashcardComment[];
@@ -35,8 +37,10 @@ export type FlashcardFlagged = {
 }
 
 export type FlashcardComment = {
+    id: string;
     commentedBy: User | undefined;
     content: string;
+    createdAt: Date;
 }
 
 export type FlashcardView = {
@@ -64,4 +68,9 @@ export type EditFlashCardType = {
 
 export type EditFlashcardView = Pick<FlashcardView, "front" | "back"> & {
     id?: string;
+};
+
+export type CreateNewCommentType = {
+    commentedBy: User;
+    content: string;
 };
