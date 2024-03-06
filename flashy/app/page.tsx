@@ -37,7 +37,11 @@ export default function Home() {
 
     if (sortOption === 'mostLiked') {
       sortedFlashcards.sort((a, b) => b.numOfLikes - a.numOfLikes);
-    } else {
+    }
+    else if (sortOption === 'mostFavorited') {
+      sortedFlashcards.sort((a, b) => b.numOfFavorites - a.numOfFavorites);
+    }
+    else {
       sortedFlashcards.sort((a, b) => {
         const distanceA = levenshtein.get(a.title.toLowerCase(), searchQuery.toLowerCase());
         const distanceB = levenshtein.get(b.title.toLowerCase(), searchQuery.toLowerCase());
@@ -82,6 +86,7 @@ export default function Home() {
               data={[
                 { value: 'mostLiked', label: 'Flest likte' },
                 { value: 'mostFavorited', label: 'Flest favoritter' },
+                { value: 'popularSet', label: 'Populære sett' }
               ]}
             />
             {<ArticleCardsGrid user={session.user} flashcards={filteredAndSortedFlashcardSets ?? []} />}
