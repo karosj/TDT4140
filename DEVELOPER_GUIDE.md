@@ -3,12 +3,29 @@
 This document is intended to provide information about the project structure, best practices and other useful information for contributors.
 
 ## Prerequisites
+- Node v21.6 (the latest version)
+- NVM v1.12
+- Next.js v14
+- Mantine/carousel v7.5.2
+- Embla-Carousel-React v7.1
+- Mantine/core & hooks v7.5
 
-TBA
+## How to install
+
+### NVM
+[Tutorial here](https://nextjs.org/docs/app/building-your-application/routing)
+
+### Node
+`nvm install 21`, then `nvm use 21`
+
+### Mantine
+- `npm install @mantine/core @mantine/hooks`
+- `npm install embla-carousel-react@^7.1.0 @mantine/carousel`
 
 ## Project structure
 
 TBA
+We are using the [Next.js project structure](https://nextjs.org/docs/app/building-your-application/routing). 
 
 ## Workflow
 
@@ -50,13 +67,32 @@ In Git there are three main areas or directories that represent different stages
 Here is a brief list of essential Git commands (Remember all these commands are integrated in VSCode and you can use that instead of the terminal):
 - `git add <file-name>`. Stages a file for commit. This means a file goes from the working directory to the staging area.
 - `git add -all`: Same as above, just adds all the modified files to the staging area (useful when you want to commit all modified files)
-- `git commit -m "Your commit message"`: This commits all staged files into the local repository.
+- `git commit -m "Your commit message"`: This commits all staged files into the local repository. On the next line of the commit message, type `Co-authored-by: name <name@example.com>` with specific information for each co-author. After the co-author information, add a closing quotation mark.
 - `git push`: Pushes your local repository to the remote repository so everyone can see it. \
 When you push from a new branch, you may need to set a upstream branch, just follow what the terminal says.
 
 ## Branching
 
 When you plan to start on a new issue, you need to create a new branch (never make changes directly to `dev` or `main`). The branch name should be the issue number followed by a short description of the issue. For example, if you are working on issue #1, you should create a branch named `1/implementing-new-feature`. This will ensure that the branch is automatically linked to that issue, and add some QOL improvements when creating merge requests.
+
+When facing conflicts during branch merging, follow these steps to resolve them:
+
+1. Identify Conflicts:
+Git notifies conflicts when merging branches with overlapping changes.
+
+2. Resolve Conflicts Locally:
+Open affected files and manually edit conflicting sections, removing Git's conflict markers.
+
+3. Review & Test Changes:
+Ensure the merged code incorporates all desired modifications and functions correctly. Test thoroughly.
+
+4. Commit Changes:
+Commit resolved conflicts with a descriptive message summarizing the changes made.
+
+5. Push Changes:
+Push resolved changes to the remote repository, updating the branch.
+
+By adhering to these steps, conflicts can be efficiently managed, maintaining code integrity and collaboration.
 
 ### Creating a new branch
 
@@ -112,6 +148,8 @@ When the review is done, you are ready to merge into `dev`. Click the "Merge pul
 
 We will use milestones to track sprint iterations. For each sprint iteration, we will have new milestone in GitLab. Utilizing milestones allows us to set specific goals, plans and allocate tasks, and monitor the overall advancement of our project.
 
+Additionally, milestones serve as pivotal markers for sprint planning, enabling the team to delineate targeted objectives for development efforts within defined timeframes. This structured approach enhances coordination and facilitates cohesive workflow management throughout the project lifecycle.
+
 ## Conventions
 
 (This is a suggestion, we can discuss this in the next meeting)
@@ -142,9 +180,17 @@ There are two types of comments, JSDoc (`/** ... */`) and ordinary comments (`//
 
 In addition, JSDoc comments are understood by tools (such as editors and documentation generators), while ordinary comments are only for other humans.
 
+### React best practices
+
+- **Keep Components Small and Focused**: Aim for single responsibility principle. Each component should ideally do one thing only.
+- **Decompose Components**: Break down your UI into smaller, reusable components to improve maintainability and reusability.
+- If you don't have a reason to otherwise, always declare a variable/function as a constant
+
+
 ### Other best practices
 
 - You should never use "[magic numbers](https://stackoverflow.com/questions/47882/what-is-a-magic-number-and-why-is-it-bad)", instead create a constant variable and reference it instead, this makes the code clearer and easier to read.
 - If you find yourself nesting a lot of if-statements, you should consider using the [guard clause](https://codingbeautydev.com/blog/stop-using-nested-ifs/?expand_article=1) pattern (invert the if-statement and return early).
 - Single-responsibility principle: A component should only have one responsibility/purpose. If a component has multiple responsibilities, it should be split into multiple component.
 - DRY (Don't Repeat Yourself) principle: Reduce repetition in code as much as possible.
+
